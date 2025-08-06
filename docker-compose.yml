@@ -41,7 +41,7 @@ services:
     container_name: laravel-webserver
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8000:8000"
       - "443:443"
     volumes:
       - ./public:/var/www/public:ro
