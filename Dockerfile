@@ -1,47 +1,42 @@
 FROM php:8.1-fpm
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    locales \
-    zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    unzip \
     git \
     curl \
-    libzip-dev \
-    libonig-dev
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libzip-dev
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install extensions
-RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl
+# Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd
+RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Install composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy existing application directory contents
-COPY . /var/www
+# Copy composer files
+COPY composer.json composer.lock ./
 
-# Install dependencies
-RUN composer install
+# Install dependencies (no dev dependencies for production)
+RUN composer install --no-dev --no-interaction --optimize-autoloader
 
-# Copy existing application directory permissions
-COPY --chown=www-data:www-data . /var/www
+# Copy application files
+COPY . .
 
-# Change current user to www-data
+# Set permissions
+RUN chown -R www-data:www-data /var/www/storage
+RUN chown -R www-data:www-data /var/www/bootstrap/cache
+
 USER www-data
 
-# Expose port 9000 and start php-fpm server
 EXPOSE 8000
 CMD ["php-fpm"]
