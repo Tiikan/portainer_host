@@ -5,22 +5,35 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: laravel-app
+    image: laravel-app:latest
     container_name: laravel-app
     restart: unless-stopped
     working_dir: /var/www
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - DB_HOST=192.168.10.200
+      - APP_KEY=${APP_KEY}
+      - APP_URL=${APP_URL:-http://localhost}
+      - DB_CONNECTION=mysql
+      - DB_HOST=pixelserver
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+      - CACHE_DRIVER=database
+      - SESSION_DRIVER=database
+      - QUEUE_CONNECTION=database
     volumes:
-      - ./:/var/www
+      - app_storage:/var/www/storage
+      - app_cache:/var/www/bootstrap/cache
+
     networks:
       - laravel-network
+    healthcheck:
+      test: ["CMD", "php", "-v"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   webserver:
     image: nginx:alpine
@@ -30,27 +43,56 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./:/var/www
-      - ./docker/nginx:/etc/nginx/conf.d
+      - ./public:/var/www/public:ro
+      - ./docker/nginx:/etc/nginx/conf.d:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
     networks:
       - laravel-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  db:
-    image: mysql:8.0
-    container_name: laravel-db
+
+
+
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel-app:latest
+    container_name: laravel-queue
     restart: unless-stopped
+    working_dir: /var/www
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_USER: ${DB_USERNAME}
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=mysql
+      - DB_HOST=pixelserver
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CACHE_DRIVER=database
+      - SESSION_DRIVER=database
+      - QUEUE_CONNECTION=database
     volumes:
-      - dbdata:/var/lib/mysql
+      - app_storage:/var/www/storage
+      - app_cache:/var/www/bootstrap/cache
+
     networks:
       - laravel-network
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
 
 volumes:
-  dbdata:
+  app_storage:
+    driver: local
+  app_cache:
     driver: local
 
 networks:
