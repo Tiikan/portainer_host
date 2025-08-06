@@ -9,14 +9,13 @@ services:
     container_name: laravel-app
     restart: unless-stopped
     working_dir: /var/www
-    network_mode: host
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_KEY=${APP_KEY}
       - APP_URL=${APP_URL:-http://localhost}
       - DB_CONNECTION=mysql
-      - DB_HOST=127.0.0.1
+      - DB_HOST=pixelserver
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
@@ -27,6 +26,10 @@ services:
     volumes:
       - app_storage:/var/www/storage
       - app_cache:/var/www/bootstrap/cache
+    extra_hosts:
+      - "pixelserver:192.168.10.200"
+    networks:
+      - laravel-network
     healthcheck:
       test: ["CMD", "php", "-v"]
       interval: 30s
@@ -37,13 +40,17 @@ services:
     image: nginx:alpine
     container_name: laravel-webserver
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
       - ./public:/var/www/public:ro
       - ./docker/nginx:/etc/nginx/conf.d:ro
       - ./docker/nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
+    networks:
+      - laravel-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
@@ -62,13 +69,12 @@ services:
     container_name: laravel-queue
     restart: unless-stopped
     working_dir: /var/www
-    network_mode: host
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_KEY=${APP_KEY}
       - DB_CONNECTION=mysql
-      - DB_HOST=127.0.0.1
+      - DB_HOST=pixelserver
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
@@ -79,6 +85,10 @@ services:
     volumes:
       - app_storage:/var/www/storage
       - app_cache:/var/www/bootstrap/cache
+    extra_hosts:
+      - "pixelserver:192.168.10.200"
+    networks:
+      - laravel-network
     command: php artisan queue:work --verbose --tries=3 --timeout=90
 
 volumes:
@@ -86,4 +96,8 @@ volumes:
     driver: local
   app_cache:
     driver: local
+
+networks:
+  laravel-network:
+    driver: bridge
 
