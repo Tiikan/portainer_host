@@ -4,7 +4,7 @@ FROM php:8.3.6-fpm
 # Set the working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -20,25 +20,18 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) pdo pdo_mysql zip exif pcntl gd mbstring
 
-# Install and enable PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) pdo pdo_mysql zip exif pcntl gd mbstring
-
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy application source code
 COPY . /var/www/html
 
-# *** This is the critical step missing from your process ***
-# Install Composer dependencies
+# Install Composer dependencies (This is the crucial step)
 RUN composer install --no-dev --optimize-autoloader
 
-# Set the correct permissions for the storage and bootstrap/cache directories
+# Set the correct permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Expose the port for PHP-FPM
 EXPOSE 9000
 
-# Start PHP-FPM
 CMD ["php-fpm"]
