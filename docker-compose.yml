@@ -29,7 +29,7 @@ services:
   mysql:
     image: 'mysql:8.0.42'
     ports:
-      - '${FORWARD_DB_PORT:-3306}:3306'
+      - '3307:3306'
     environment:
       PGPASSWORD: '${DB_PASSWORD:-Kang@2k25}'
       POSTGRES_DB: '${DB_DATABASE}'
