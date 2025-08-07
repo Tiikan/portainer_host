@@ -20,21 +20,10 @@ services:
       DB_USERNAME: '${DB_USERNAME}'
       DB_PASSWORD: '${DB_PASSWORD}'
       DB_ROOT_PASSWORD: '${DB_ROOT_PASSWORD}'
-
-  nginx:
-    image: nginx:alpine
-    container_name: athena-nginx
-    restart: unless-stopped
     ports:
-      - "8010:80"
-    volumes:
-      - ./:/var/www/html
-      - ./docker/nginx:/etc/nginx/conf.d
-    networks:
-      - athena-network
-    depends_on:
-      - laravel.test
-      - mysql
+      - "8000:8000"
+
+  # nginx service removed
 
   mysql:
     image: 'mysql:8.0.42'
