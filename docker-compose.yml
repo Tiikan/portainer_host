@@ -8,26 +8,42 @@ services:
     image: athena
     container_name: athena-app
     restart: unless-stopped
-    pull_policy: always
     working_dir: /var/www/html
     networks:
       - athena-network
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    environment:
+      - OPcache.enable=1
+      - OPcache.memory_consumption=128
+      - OPcache.max_accelerated_files=10000
+      - OPcache.revalidate_freq=2
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
   nginx:
     image: nginx:alpine
     container_name: athena-nginx
     restart: unless-stopped
     ports:
-      - "8000:80"  # Map port 8010 on the host to port 80 in the container
+      - "8000:80"
     volumes:
       - ./:/var/www/html
       - ./docker/nginx:/etc/nginx/conf.d
     networks:
       - athena-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
 
   mysql:
-    image: 'mysql:8.0.42'
+    image: mysql:8.0.42
     container_name: athena-mysql
     ports:
       - '3307:3306'
@@ -35,22 +51,48 @@ services:
       MYSQL_DATABASE: '${DB_DATABASE}'
       MYSQL_USER: 'laravel_user'
       MYSQL_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}' # <-- Add this line
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+      MYSQL_INITDB_SKIP_TZINFO: 1
+      TZ: 'UTC'
     volumes:
-      - 'sail-mysql:/var/lib/mysql/data'
+      - 'sail-mysql:/var/lib/mysql'
+      - './docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf'
       - './vendor/laravel/sail/database/mysql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
     networks:
       - athena-network
     healthcheck:
-      test:
-        - CMD
-        - mysqladmin
-        - ping
-      retries: 3
-      timeout: 5s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.75'
+      reservations:
+        memory: 512M
+
+  redis:
+    image: redis:alpine
+    container_name: athena-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - athena-network
+    volumes:
+      - 'sail-redis:/data'
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+
 networks:
   athena-network:
     driver: bridge
+
 volumes:
   sail-mysql:
+    driver: local
+  sail-redis:
     driver: local
