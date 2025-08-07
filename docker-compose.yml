@@ -5,78 +5,57 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: athena
     container_name: athena-app
     restart: unless-stopped
+    pull_policy: always
     working_dir: /var/www/html
     networks:
       - athena-network
     depends_on:
-      mysql:
-        condition: service_healthy
-    environment:
-      - OPcache.enable=1
-      - OPcache.memory_consumption=128
-      - OPcache.max_accelerated_files=10000
-      - OPcache.revalidate_freq=2
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
+      - mysql
+    # Remove the ports section here, as PHP-FPM doesn't need to be exposed.
 
   nginx:
     image: nginx:alpine
     container_name: athena-nginx
     restart: unless-stopped
     ports:
-      - "8000:80"
+      - "8000:80" # This port is for your web application.
     volumes:
       - ./:/var/www/html
       - ./docker/nginx:/etc/nginx/conf.d
     networks:
       - athena-network
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.25'
+    depends_on:
+      - laravel.test
+      - mysql
 
   mysql:
-  image: mysql:8.0.42
-  container_name: athena-mysql
-  ports:
-    - '3307:3306'
-  environment:
-    MYSQL_DATABASE: '${DB_DATABASE}'
-    MYSQL_USER: 'pixelip'
-    MYSQL_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
-    MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
-    MYSQL_INITDB_SKIP_TZINFO: 1
-    TZ: 'UTC'
-  volumes:
-    - 'mysql-data:/var/lib/mysql'  # Changed volume name for clarity
-    - './docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf'
-    - './docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql'
-  networks:
-    - athena-network
-  healthcheck:
-    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-Kang@2k25}"]
-    interval: 5s
-    timeout: 10s
-    retries: 20
-  restart: unless-stopped
-  deploy:
-    resources:
-      limits:
-        memory: 1G
-        cpus: '0.75'
+    image: 'mysql:8.0.42'
+    container_name: athena-mysql
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+    volumes:
+      - 'sail-mysql:/var/lib/mysql/data'
+    networks:
+      - athena-network
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+      retries: 3
+      timeout: 5s
+
 networks:
   athena-network:
     driver: bridge
 
 volumes:
   sail-mysql:
-    driver: local
-  sail-redis:
     driver: local
