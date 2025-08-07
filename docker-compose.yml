@@ -1,89 +1,59 @@
 version: '3.8'
 
 services:
-  app:
+  laravel.test:
     build:
       context: .
       dockerfile: Dockerfile
-    image: laravel-app:latest
-    container_name: laravel-app
+    image: athena
+    container_name: athena-app
     restart: unless-stopped
-    working_dir: /var/www
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_KEY=${APP_KEY}
-      - APP_URL=${APP_URL:-http://localhost}
-      - DB_CONNECTION=mysql
-      - DB_HOST=localhost
-      - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - CACHE_DRIVER=database
-      - SESSION_DRIVER=database
-      - QUEUE_CONNECTION=database
-    volumes:
-      - app_storage:/var/www/storage
-      - app_cache:/var/www/bootstrap/cache
-    network_mode: host
-    healthcheck:
-      test: ["CMD", "php", "-v"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  webserver:
-    image: nginx:alpine
-    container_name: laravel-webserver
-    restart: unless-stopped
-    volumes:
-      - ./public:/var/www/public:ro
-      - ./docker/nginx:/etc/nginx/conf.d:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    pull_policy: always
+    working_dir: /var/www/html
+    networks:
+      - athena-network
     depends_on:
-      - app
-    network_mode: host
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      
-  queue:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: laravel-app:latest
-    container_name: laravel-queue
+      - mysql
+  nginx:
+    image: nginx:alpine
+    container_name: athena-nginx
     restart: unless-stopped
-    working_dir: /var/www
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_KEY=${APP_KEY}
-      - DB_CONNECTION=mysql
-      - DB_HOST=localhost
-      - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - CACHE_DRIVER=database
-      - SESSION_DRIVER=database
-      - QUEUE_CONNECTION=database
+    ports:
+      - "8000:80"  # Map port 8010 on the host to port 80 in the container
     volumes:
-      - app_storage:/var/www/storage
-      - app_cache:/var/www/bootstrap/cache
-    network_mode: host
-    command: php artisan queue:work --verbose --tries=3 --timeout=90
+      - ./:/var/www/html
+      - ./docker/nginx:/etc/nginx/conf.d
+    networks:
+      - athena-network
 
-volumes:
-  app_storage:
-    driver: local
-  app_cache:
-    driver: local
-
+  mysql:
+    image: 'mysql:8.0.42'
+    ports:
+      - '${FORWARD_DB_PORT:-3306}:3306'
+    environment:
+      PGPASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+      POSTGRES_DB: '${DB_DATABASE}'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+    volumes:
+      - 'sail-pgsql:/var/lib/mysql/data'
+      - './vendor/laravel/sail/database/mysql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
+    networks:
+      - athena-network
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - '-q'
+        - '-d'
+        - '${DB_DATABASE}'
+        - '-U'
+        - '${DB_USERNAME}'
+      retries: 3
+      timeout: 5s
 networks:
-  laravel-network:
+  athena-network:
     driver: bridge
-
+volumes:
+  sail-mysql:
+    driver: local
