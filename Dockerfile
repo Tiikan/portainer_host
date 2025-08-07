@@ -36,7 +36,10 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
+# Configure PHP-FPM to listen on port 9001
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:9001/' /usr/local/etc/php-fpm.d/www.conf
+
 USER www-data
 
-EXPOSE 9000
+EXPOSE 9001
 CMD ["php-fpm"]
