@@ -1,39 +1,40 @@
-# Use PHP 8.3 FPM
+# Use PHP 8.3 FPM as the base image
 FROM php:8.3.6-fpm
 
-# Set working directory
+# Set the working directory
 WORKDIR /var/www/html
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    locales \
-    zip \
-    unzip \
     git \
     curl \
-    libpq-dev
+    unzip \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype-dev \
+    libzip-dev \
+    locales \
+    && rm -rf /var/lib/apt/lists/*
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install PHP extensions
-
+# Install and enable PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql gd
+    && docker-php-ext-install -j$(nproc) pdo pdo_mysql zip exif pcntl gd mbstring
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy existing application directory contents
+# Copy application source code
 COPY . /var/www/html
 
-# Copy existing application directory permissions
-COPY --chown=www-data:www-data . /var/www/html
+# *** This is the critical step missing from your process ***
+# Install Composer dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Change the owner of the application directory to www-data
+# Set the correct permissions for the storage and bootstrap/cache directories
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-EXPOSE 8000
+# Expose the port for PHP-FPM
+EXPOSE 9000
+
+# Start PHP-FPM
+CMD ["php-fpm"]
