@@ -33,7 +33,7 @@ services:
       - '3307:3306'
     environment:
       MYSQL_DATABASE: '${DB_DATABASE}'
-      MYSQL_USER: '${DB_USERNAME:-root}'
+      MYSQL_USER: 'laravel_user'
       MYSQL_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
       MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}' # <-- Add this line
     volumes:
