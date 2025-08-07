@@ -11,10 +11,14 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libpng-dev \
     libjpeg-dev \
-    libfreetype-dev \
+    libfreetype6-dev \
     libzip-dev \
+    libpq-dev \
+    libonig-dev \
     locales \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo pdo_mysql zip exif pcntl gd mbstring
 
 # Install and enable PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
