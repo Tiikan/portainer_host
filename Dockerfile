@@ -30,7 +30,7 @@ COPY . /var/www/html
 RUN composer install --no-dev --optimize-autoloader
 
 # Set the correct permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 9000
 
