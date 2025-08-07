@@ -28,13 +28,14 @@ services:
 
   mysql:
     image: 'mysql:8.0.42'
+    container_name: athena-mysql
     ports:
       - '3307:3306'
     environment:
-      PGPASSWORD: '${DB_PASSWORD:-Kang@2k25}'
-      POSTGRES_DB: '${DB_DATABASE}'
-      POSTGRES_USER: '${DB_USERNAME}'
-      POSTGRES_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:Kang@2k25}'
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:Kang@2k25}' # <-- Add this line
     volumes:
       - 'sail-mysql:/var/lib/mysql/data'
       - './vendor/laravel/sail/database/mysql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
@@ -44,11 +45,7 @@ services:
       test:
         - CMD
         - mysqladmin
-        - '-q'
-        - '-d'
-        - '${DB_DATABASE}'
-        - '-U'
-        - '${DB_USERNAME}'
+        - ping
       retries: 3
       timeout: 5s
 networks:
