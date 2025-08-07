@@ -15,7 +15,7 @@ services:
       - APP_KEY=${APP_KEY}
       - APP_URL=${APP_URL:-http://localhost}
       - DB_CONNECTION=mysql
-      - DB_HOST=192.168.10.200
+      - DB_HOST=localhost
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
@@ -26,10 +26,7 @@ services:
     volumes:
       - app_storage:/var/www/storage
       - app_cache:/var/www/bootstrap/cache
-    extra_hosts:
-      - "pixelserver:192.168.10.200"
-    networks:
-      - laravel-network
+    network_mode: host
     healthcheck:
       test: ["CMD", "php", "-v"]
       interval: 30s
@@ -40,8 +37,7 @@ services:
     image: nginx:alpine
     container_name: laravel-webserver
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+
       - "443:443"
     volumes:
       - ./public:/var/www/public:ro
@@ -49,8 +45,7 @@ services:
       - ./docker/nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
-    networks:
-      - laravel-network
+    network_mode: host
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
@@ -74,7 +69,7 @@ services:
       - APP_DEBUG=false
       - APP_KEY=${APP_KEY}
       - DB_CONNECTION=mysql
-      - DB_HOST=192.168.10.200
+      - DB_HOST=localhost
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
@@ -85,10 +80,7 @@ services:
     volumes:
       - app_storage:/var/www/storage
       - app_cache:/var/www/bootstrap/cache
-    extra_hosts:
-      - "pixelserver:192.168.10.200"
-    networks:
-      - laravel-network
+    network_mode: host
     command: php artisan queue:work --verbose --tries=3 --timeout=90
 
 volumes:
