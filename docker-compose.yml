@@ -13,14 +13,13 @@ services:
       - athena-network
     depends_on:
       - mysql
-    # Remove the ports section here, as PHP-FPM doesn't need to be exposed.
 
   nginx:
     image: nginx:alpine
     container_name: athena-nginx
     restart: unless-stopped
     ports:
-      - "8000:80" # This port is for your web application.
+      - "8000:80"
     volumes:
       - ./:/var/www/html
       - ./docker/nginx:/etc/nginx/conf.d
