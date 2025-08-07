@@ -32,6 +32,9 @@ RUN composer install --no-dev --optimize-autoloader
 # Set the correct permissions
 RUN chown -R www-data:www-data /var/www/html
 
-EXPOSE 9000
+# Change the owner of the application directory to www-data
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-CMD ["php-fpm"]
+EXPOSE 8010
+
+# CMD ["php-fpm"]
