@@ -43,48 +43,34 @@ services:
           cpus: '0.25'
 
   mysql:
-    image: mysql:8.0.42
-    container_name: athena-mysql
-    ports:
-      - '3307:3306'
-    environment:
-      MYSQL_DATABASE: '${DB_DATABASE}'
-      MYSQL_USER: 'laravel_user'
-      MYSQL_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
-      MYSQL_INITDB_SKIP_TZINFO: 1
-      TZ: 'UTC'
-    volumes:
-      - 'sail-mysql:/var/lib/mysql'
-      - './docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf'
-      - './vendor/laravel/sail/database/mysql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
-    networks:
-      - athena-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.75'
-
-  redis:
-    image: redis:alpine
-    container_name: athena-redis
-    ports:
-      - '6379:6379'
-    networks:
-      - athena-network
-    volumes:
-      - 'sail-redis:/data'
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.1'
-
+  image: mysql:8.0.42
+  container_name: athena-mysql
+  ports:
+    - '3307:3306'
+  environment:
+    MYSQL_DATABASE: '${DB_DATABASE}'
+    MYSQL_USER: 'pixelip'
+    MYSQL_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+    MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-Kang@2k25}'
+    MYSQL_INITDB_SKIP_TZINFO: 1
+    TZ: 'UTC'
+  volumes:
+    - 'mysql-data:/var/lib/mysql'  # Changed volume name for clarity
+    - './docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf'
+    - './docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql'
+  networks:
+    - athena-network
+  healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-Kang@2k25}"]
+    interval: 5s
+    timeout: 10s
+    retries: 20
+  restart: unless-stopped
+  deploy:
+    resources:
+      limits:
+        memory: 1G
+        cpus: '0.75'
 networks:
   athena-network:
     driver: bridge
